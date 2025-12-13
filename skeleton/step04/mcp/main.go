@@ -21,18 +21,43 @@ func main() {
 
 func run(ctx context.Context) error {
 	// MCPサーバーを作成する
-	server := /* TODO: mcp.NewServerでサーバーを作成 */
+	server := mcp.NewServer(&mcp.Implementation{
+		Name:    "godoc",
+		Version: "v0.1.0",
+	}, nil)
 
 	// ツールを登録する
 	mcp.AddTool(server, &mcp.Tool{
 		Name: "godoc",
 		// TODO: Descriptionを設定する
 		// ヒント: go help doc を実行してオプションを確認しましょう
-		Description: /* TODO: go docコマンドの説明とオプションを記述 */,
+		Description: `execute go doc command
+Optionis
+-all
+        Show all the documentation for the package.
+-c
+        Respect case when matching symbols.
+-cmd
+        Treat a command (package main) like a regular package.
+        Otherwise package main's exported symbols are hidden
+        when showing the package's top-level documentation.
+-short
+        One-line representation for each symbol.
+-src
+        Show the full source code for the symbol. This will
+        display the full Go source of its declaration and
+        definition, such as a function definition (including
+        the body), type declaration or enclosing const
+        block. The output may therefore include unexported
+        details.
+-u
+        Show documentation for unexported as well as exported
+        symbols, methods, and fields.
+`,
 	}, GoDoc)
 
 	// サーバーを実行する
-	if err := server.Run(ctx, /* TODO: &mcp.StdioTransport{}を指定 */); err != nil {
+	if err := server.Run(ctx, &mcp.StdioTransport{}); err != nil {
 		return ergo.Wrap(err, "failed to run mcp server")
 	}
 

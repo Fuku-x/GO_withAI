@@ -44,7 +44,7 @@ func run(ctx context.Context, apikey string, args []string) error {
 	// ※事前に go build -o godocmcp ./mcp でビルドしておく
 	godocMcp, err := mcptoolset.New(mcptoolset.Config{
 		Transport: &mcp.CommandTransport{
-			Command: /* TODO: exec.Command("./godocmcp")でMCPサーバーを指定 */,
+			Command: exec.Command("./godocmcp"),
 		},
 	})
 	if err != nil {
@@ -56,10 +56,15 @@ func run(ctx context.Context, apikey string, args []string) error {
 		Name:        "go-doc-agent",
 		Model:       model,
 		Description: "GoDoc Agent",
-		Instruction: /* TODO: GoDocエージェントとしての指示を書く */,
+		Instruction: `
+        あなたはGoのパッケージについて調べるエージェントです。
+        ユーザの質問にgo docコマンで調べながら答えてください。
+        Goに関する質問以外は受けないようにしてください。
+        Markdown形式で日本語で答えてください。
+    `,
 		// ToolsではなくToolsetsを使う
 		Toolsets: []tool.Toolset{
-			/* TODO: godocMcpを追加 */
+			godocMcp,
 		},
 	})
 	if err != nil {
