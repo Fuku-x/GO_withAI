@@ -43,9 +43,9 @@ func run(ctx context.Context, apikey string, args []string) error {
 		Name:        "search-agent",
 		Model:       model,
 		Description: "Google Search Agent",
-		Instruction: /* TODO: 検索エージェントとしての指示を書く */,
+		Instruction: "あなたはサーチエージェントです。ユーザの入力を検索して検索結果を日本語で要約してください。",
 		Tools: []tool.Tool{
-			/* TODO: geminitool.GoogleSearch{}を追加 */
+			geminitool.GoogleSearch{},
 		},
 	})
 	if err != nil {
