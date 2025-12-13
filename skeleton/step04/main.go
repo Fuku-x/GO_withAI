@@ -1,0 +1,96 @@
+package main
+
+import (
+	"context"
+	"log/slog"
+	"os"
+	"os/exec"
+	"slices"
+	"strconv"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/newmo-oss/ergo"
+	"google.golang.org/adk/agent"
+	"google.golang.org/adk/agent/llmagent"
+	"google.golang.org/adk/cmd/launcher"
+	"google.golang.org/adk/cmd/launcher/full"
+	"google.golang.org/adk/model/gemini"
+	"google.golang.org/adk/tool"
+	"google.golang.org/adk/tool/mcptoolset"
+	"google.golang.org/genai"
+)
+
+func main() {
+	ctx := context.Background()
+	// APIキーを環境変数から取得する
+	apikey := os.Getenv("GOOGLE_API_KEY")
+
+	if err := run(ctx, apikey, os.Args[1:]); err != nil {
+		slog.LogAttrs(ctx, slog.LevelError, err.Error(), errorAttrs(err)...)
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context, apikey string, args []string) error {
+	// 利用するモデル名を入れる
+	// See: https://ai.google.dev/gemini-api/docs/models
+	const modelName = "gemini-2.5-flash-lite"
+	model, err := gemini.NewModel(ctx, modelName, &genai.ClientConfig{APIKey: apikey})
+	if err != nil {
+		return ergo.Wrap(err, "failed to create model", slog.String("model_name", modelName))
+	}
+
+	// MCPサーバーに接続する
+	// ※事前に go build -o godocmcp ./mcp でビルドしておく
+	godocMcp, err := mcptoolset.New(mcptoolset.Config{
+		Transport: &mcp.CommandTransport{
+			Command: /* TODO: exec.Command("./godocmcp")でMCPサーバーを指定 */,
+		},
+	})
+	if err != nil {
+		return ergo.Wrap(err, "failed to create godoc mcp tool")
+	}
+
+	// エージェントを作成する
+	godocAgent, err := llmagent.New(llmagent.Config{
+		Name:        "go-doc-agent",
+		Model:       model,
+		Description: "GoDoc Agent",
+		Instruction: /* TODO: GoDocエージェントとしての指示を書く */,
+		// ToolsではなくToolsetsを使う
+		Toolsets: []tool.Toolset{
+			/* TODO: godocMcpを追加 */
+		},
+	})
+	if err != nil {
+		return ergo.Wrap(err, "failed to create agent")
+	}
+
+	config := &launcher.Config{
+		AgentLoader: agent.NewSingleLoader(godocAgent),
+	}
+
+	l := full.NewLauncher()
+	if err = l.Execute(ctx, config, args); err != nil {
+		return ergo.Wrap(err, "faield to execute launcher", slog.String("command_line_syntax", l.CommandLineSyntax()))
+	}
+
+	return nil
+}
+
+// エラーから属性とスタックトレースをとりだす
+func errorAttrs(err error) []slog.Attr {
+	var frames []slog.Attr
+	for i, frame := range ergo.StackTraceOf(err) {
+		frames = append(frames, slog.Group(strconv.Itoa(i),
+			"package", frame.PkgPath(),
+			"file", frame.File(),
+			"line", frame.Line(),
+			"func", frame.FuncName(),
+		))
+	}
+	return []slog.Attr{
+		slog.GroupAttrs("error_attrs", slices.Collect(ergo.AttrsAll(err))...),
+		slog.GroupAttrs("stacktrace", frames...),
+	}
+}
