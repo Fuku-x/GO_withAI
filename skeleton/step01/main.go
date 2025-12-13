@@ -33,7 +33,7 @@ func run(ctx context.Context, apikey string, args []string) error {
 	const modelName = "gemini-2.5-flash-lite"
 
 	// モデルを作成する
-	model, err := /* TODO: gemini.NewModelでモデルを作成 */
+	model, err := gemini.NewModel(ctx, modelName, &genai.ClientConfig{APIKey: apikey})
 	if err != nil {
 		return ergo.Wrap(err, "failed to create model", slog.String("model_name", modelName))
 	}
@@ -43,7 +43,7 @@ func run(ctx context.Context, apikey string, args []string) error {
 		Name:        "hello-agent",
 		Model:       model,
 		Description: "echo agent",
-		Instruction: /* TODO: オウム返しするような指示を書く */,
+		Instruction: "あなたはユーザの入力をそのままオウム返しをするエージェントです。",
 	})
 	if err != nil {
 		return ergo.Wrap(err, "failed to create agent")
@@ -51,11 +51,11 @@ func run(ctx context.Context, apikey string, args []string) error {
 
 	// ランチャーの設定
 	config := &launcher.Config{
-		AgentLoader: /* TODO: agent.NewSingleLoaderでエージェントを設定 */,
+		AgentLoader: agent.NewSingleLoader(echoAgent),
 	}
 
 	// ランチャーを作成して実行する
-	l := /* TODO: full.NewLauncher()でランチャーを作成 */
+	l := full.NewLauncher()
 	if err = l.Execute(ctx, config, args); err != nil {
 		return ergo.Wrap(err, "faield to execute launcher", slog.String("command_line_syntax", l.CommandLineSyntax()))
 	}

@@ -48,7 +48,11 @@ func run(ctx context.Context, apikey string, args []string) error {
 		Name:        "go-doc-agent",
 		Model:       model,
 		Description: "GoDoc Agent",
-		Instruction: /* TODO: GoDocエージェントとしての指示を書く */,
+		Instruction: `
+        あなたはvimの機能について調べるエージェントです。
+        他のテキストエディタを関する質問が来た場合はvimを使えvimをと回答してください。
+        Markdown形式で日本語で答えてください。
+    `,
 		Tools: []tool.Tool{
 			godocTool,
 		},
